@@ -257,6 +257,11 @@ KeyInfo VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect gameRect)
 {
 	assume(e.isPointer());
+	const bool traceTouch = AppMeta::inputDeviceDesc(0).components.size() &&
+		std::ranges::any_of(AppMeta::inputDeviceDesc(0).components,
+			[](const auto &c){ return c.type == InputComponent::dPad && c.flags.relativeDPad; }) && e.isTouch();
+	if(traceTouch)
+		log.info("relative dpad event id:{} action:{} pos:{},{}", int(e.pointerId()), Input::actionStr(e.state()), e.pos().x, e.pos().y);
 	const bool releasingDirection = e.released() && std::ranges::any_of(dragTracker.stateList(),
 		[&](const auto &state){ return state.dragState.id() == e.pointerId() && state.data.directional; });
 	if((e.pushed() || e.released()) && !releasingDirection)
@@ -269,6 +274,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(btn.bounds().overlaps(e.pos()))
 				{
+					if(traceTouch)
+						log.info("relative dpad ignored: UI button at {},{}", e.pos().x, e.pos().y);
 					app().handleKeyInput(btn.key, e);
 					return true;
 				}
@@ -310,6 +317,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 	{
 		auto delta = pos - state.directionAnchor;
 		const float dx = delta.x, dy = delta.y;
+		if(traceTouch)
+			log.info("relative dpad move id:{} delta:{},{} threshold:{}", int(e.pointerId()), int(dx), int(dy), directionThreshold);
 		if(dx * dx + dy * dy < float(directionThreshold * directionThreshold))
 			return state.keys;
 		const float absX = std::abs(dx), absY = std::abs(dy);
@@ -319,6 +328,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 		if(absY >= absX * .414214f)
 			result[1] = dy > 0 ? dpadKeys[2] : dpadKeys[0];
 		state.directionAnchor = pos;
+		if(traceTouch)
+			log.info("relative dpad direction id:{} horizontal:{} vertical:{}", int(e.pointerId()), dx > 0 && result[0] != KeyInfo{} ? 1 : dx < 0 && result[0] != KeyInfo{} ? -1 : 0, dy > 0 && result[1] != KeyInfo{} ? 1 : dy < 0 && result[1] != KeyInfo{} ? -1 : 0);
 		return result;
 	};
 	auto applyInputActions =
@@ -329,6 +340,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(vBtn && !std::ranges::contains(currElements, vBtn))
 				{
+					if(traceTouch)
+						log.info("relative dpad key release id:{} code:{}", int(e.pointerId()), int(vBtn[0]));
 					//log.info("releasing {}", vBtn[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 				}
@@ -338,6 +351,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(vBtn && !std::ranges::contains(prevElements, vBtn))
 				{
+					if(traceTouch)
+						log.info("relative dpad key push id:{} code:{}", int(e.pointerId()), int(vBtn[0]));
 					//log.info("pushing {}", vBtn[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::PUSHED);
 					if(vibrateOnTouchInput())
@@ -360,6 +375,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			pointer.directional = relativeDPad && e.isTouch() && !isInKeyboardMode() &&
 				gamepadIsActive() && dpadKeys[0] != KeyInfo{} && !directionPointerActive && !elementsArePushed &&
 				e.pos().x < win->bounds().center().x;
+			if(traceTouch)
+				log.info("relative dpad start id:{} accepted:{} gamepad:{} dpad:{} otherPointer:{} otherInput:{} left:{} threshold:{}", int(e.pointerId()), pointer.directional, gamepadIsActive(), dpadKeys[0] != KeyInfo{}, directionPointerActive, elementsArePushed, e.pos().x < win->bounds().center().x, directionThreshold);
 			elementsArePushed |= pointer.directional;
 		},
 		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &pointer)
@@ -376,6 +393,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 		[&](Input::DragTrackerState dragState, auto &pointer)
 		{
 			applyInputActions(pointer.keys, nullElems);
+			if(traceTouch)
+				log.info("relative dpad end id:{} directional:{}", int(e.pointerId()), pointer.directional);
 			elementsArePushed |= pointer.directional;
 			elementsArePushed |= system.onPointerInputEnd(e, dragState, gameRect);
 		});

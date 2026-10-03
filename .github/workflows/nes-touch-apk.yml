@@ -49,9 +49,9 @@ jobs:
           test -s "$APK"
           AAPT=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -1)
           test -n "$AAPT"
-          "$AAPT" dump badging "$APK" | grep "name='local.jinn.nesemutouch' versionCode='16010586' versionName='1.5.85-jinn.1'"
+          "$AAPT" dump badging "$APK" | grep "name='local.jinn.nesemutouch' versionCode='16010587' versionName='1.5.85-jinn.2'"
           sha256sum "$APK"
       - uses: actions/upload-artifact@v4
         with:
-          name: NesEmuTouch-1.5.85-jinn.1-arm64
+          name: NesEmuTouch-1.5.85-jinn.2-arm64
           path: NES.emu/build/android/build/outputs/apk/release/NesEmu-release.apk

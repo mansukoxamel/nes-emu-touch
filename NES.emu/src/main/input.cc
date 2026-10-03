@@ -121,6 +121,8 @@ void NesSystem::handleInputAction(EmuApp *app, InputAction a)
 			}
 		}
 		padData = setOrClearBits(padData, gpBits << playerInputShift(player), a.isPushed());
+		if(player == 0 && (key == NesKey::Up || key == NesKey::Right || key == NesKey::Down || key == NesKey::Left))
+			log.info("relative dpad NES action key:{} pressed:{} padData:{:08x}", int(a.code), a.isPushed(), padData);
 	}
 }
 
