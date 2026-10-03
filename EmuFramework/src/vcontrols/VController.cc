@@ -324,9 +324,15 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 	{
 		if(!relativeDPad || !gamepadIsActive() || !gamepadDPadIsEnabled())
 			return {};
-		for(const auto &elem : gpElements)
-			if(const auto *dpad = elem.dPad(); dpad && elem.state != VControllerState::OFF)
-				return dpad->config.keys;
+		for(const auto &component : AppMeta::inputDeviceDesc(0).components)
+		{
+			if(component.type != InputComponent::dPad || !component.flags.relativeDPad || component.keyCodes.size() != 4)
+				continue;
+			std::array<KeyInfo, 4> keys{};
+			for(size_t i = 0; i < keys.size(); ++i)
+				keys[i] = app.inputManager.transpose(component.keyCodes[i], inputPlayer_);
+			return keys;
+		}
 		return {};
 	};
 	const auto dpadKeys = directionKeys();
@@ -984,7 +990,7 @@ std::vector<VControllerElement> VController::defaultEmulatedDeviceGroups() const
 	std::vector<VControllerElement> gpElements;
 	for(const auto &c : AppMeta::inputDeviceDesc(0).components)
 	{
-		if(!c.flags.altConfig)
+		if(!c.flags.altConfig && !c.flags.relativeDPad)
 			add(gpElements, c);
 	}
 	if(hasWindow())
