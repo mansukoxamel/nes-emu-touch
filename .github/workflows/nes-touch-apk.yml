@@ -43,9 +43,6 @@ jobs:
       - name: Build NES.emu APK
         working-directory: NES.emu
         run: |
-          # CI's temporary debug signing key changes per run. Use a separate package
-          # for this test APK so previously installed builds keep their data.
-          sed -i 's/^metadata_id = local\.jinn\.nesemutouch$/metadata_id = local.jinn.nesemutouch3/' metadata/conf.mk
           make -f android.mk android-apk CONFIG=Release android_arch=arm64 -j"$(nproc)"
       - name: Verify APK metadata
         run: |
@@ -53,9 +50,9 @@ jobs:
           test -s "$APK"
           AAPT=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -1)
           test -n "$AAPT"
-          "$AAPT" dump badging "$APK" | grep "name='local.jinn.nesemutouch3' versionCode='16010588' versionName='1.5.85-touch3'"
+          "$AAPT" dump badging "$APK" | grep "name='local.jinn.nesemutouchapp' versionCode='16010589' versionName='1.5.85-touch4'"
           sha256sum "$APK"
       - uses: actions/upload-artifact@v4
         with:
-          name: NesEmuTouch-1.5.85-touch3-arm64
+          name: NesEmuTouch-1.5.85-touch4-arm64-unsigned-for-install
           path: NES.emu/build/android/build/outputs/apk/release/NesEmu-release.apk

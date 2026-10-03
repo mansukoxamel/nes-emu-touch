@@ -92,6 +92,9 @@ void NesSystem::handleInputAction(EmuApp *app, InputAction a)
 	else // gamepad bits
 	{
 		auto gpBits = bit(a.code - 1);
+		if(key == NesKey::A || key == NesKey::B)
+			log.info("NES pad key:{} action:{} player:{} bits:{:x}",
+				a.code, a.isPushed() ? "push" : "release", player, gpBits);
 		if(GameInfo->type == GIT_NSF && a.isPushed())
 		{
 			if(key == NesKey::Up)

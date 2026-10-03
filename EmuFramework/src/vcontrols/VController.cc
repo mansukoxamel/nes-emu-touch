@@ -320,6 +320,10 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 	auto &app = this->app();
 	auto &system = this->system();
 	const bool relativeDPad = usesRelativeDPad();
+	if(relativeDPad && (e.pushed() || e.released()))
+		log.info("NES touch {} id:{} pos:{},{} hit:{},{} active:{}",
+			e.pushed() ? "down" : "up", e.pointerId(), e.pos().x, e.pos().y,
+			newElems[0].codes[0], newElems[1].codes[0], gamepadIsActive());
 	auto directionKeys = [&]() -> std::array<KeyInfo, 4>
 	{
 		if(!relativeDPad || !gamepadIsActive() || !gamepadDPadIsEnabled())
@@ -362,6 +366,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(vBtn && !std::ranges::contains(currElements, vBtn))
 				{
+					if(relativeDPad && (vBtn.codes[0] == 1 || vBtn.codes[0] == 2))
+						log.info("NES touch release key:{}", vBtn.codes[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 				}
 			}
@@ -370,6 +376,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(vBtn && !std::ranges::contains(prevElements, vBtn))
 				{
+					if(relativeDPad && (vBtn.codes[0] == 1 || vBtn.codes[0] == 2))
+						log.info("NES touch push key:{}", vBtn.codes[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::PUSHED);
 					if(vibrateOnTouchInput())
 					{
