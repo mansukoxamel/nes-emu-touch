@@ -323,9 +323,10 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 	if(relativeDPad && !IG::Log::isEnabled())
 		IG::Log::setEnabled(true); // Release builds disable the shared logger by default.
 	if(relativeDPad && (e.pushed() || e.released()))
-		log.info("NES touch {} id:{} pos:{},{} hit:{},{} active:{}",
+		log.info("NES touch {} id:{} pos:{},{} hit:{},{} active:{} eventAgeMs:{}",
 			e.pushed() ? "down" : "up", e.pointerId(), e.pos().x, e.pos().y,
-			newElems[0].codes[0], newElems[1].codes[0], gamepadIsActive());
+			newElems[0].codes[0], newElems[1].codes[0], gamepadIsActive(),
+			duration_cast<Milliseconds>(SteadyClock::now() - e.time()).count());
 	auto directionKeys = [&]() -> std::array<KeyInfo, 4>
 	{
 		if(!relativeDPad || !gamepadIsActive() || !gamepadDPadIsEnabled())
