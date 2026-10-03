@@ -40,6 +40,15 @@ static uint8_t defaultAlphaForSystem()
 VController::VController(ApplicationContext ctx):
 	appCtx{ctx},
 	alphaF{defaultAlphaForSystem() / 255.f},
+	nesAReleaseTimer
+	{
+		{.debugLabel = "NES A release", .eventLoop = EventLoop::forThread()},
+		[this]
+		{
+			releaseHeldNesA();
+			return false;
+		}
+	},
 	defaultButtonSize
 	{
 		#ifdef CONFIG_OS_IOS
@@ -167,10 +176,18 @@ void VController::applyButtonSize()
 
 void VController::resetInput()
 {
+	if(usesRelativeDPad())
+	{
+		nesAReleaseTimer.cancel();
+		nesAPointerCount = 0;
+		releaseHeldNesA();
+	}
 	for(auto &e : dragTracker.stateList())
 	{
 		for(auto &vBtn : e.data.keys)
 		{
+			if(usesRelativeDPad() && vBtn.codes[0] == 1)
+				continue;
 			if(vBtn) // release old key, if any
 				app().handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 		}
@@ -369,6 +386,18 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(vBtn && !std::ranges::contains(currElements, vBtn))
 				{
+					if(relativeDPad && vBtn.codes[0] == 1)
+					{
+						if(nesAPointerCount && --nesAPointerCount == 0)
+						{
+							auto remaining = Milliseconds{50} - (SteadyClock::now() - nesAPressedAt);
+							if(remaining > SteadyClock::duration::zero())
+								nesAReleaseTimer.runIn(remaining);
+							else
+								releaseHeldNesA();
+						}
+						continue;
+					}
 					if(relativeDPad && (vBtn.codes[0] == 1 || vBtn.codes[0] == 2))
 						log.info("NES touch release key:{}", vBtn.codes[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::RELEASED);
@@ -379,6 +408,23 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(vBtn && !std::ranges::contains(prevElements, vBtn))
 				{
+					if(relativeDPad && vBtn.codes[0] == 1)
+					{
+						nesAReleaseTimer.cancel();
+						if(!nesAPointerCount++)
+						{
+							if(!heldNesA)
+							{
+								heldNesA = vBtn;
+								nesAPressedAt = SteadyClock::now();
+								log.info("NES touch push key:{}", vBtn.codes[0]);
+								app.handleSystemKeyInput(vBtn, Input::Action::PUSHED);
+								if(vibrateOnTouchInput())
+									app.vibrationManager.vibrate(Milliseconds{32});
+							}
+						}
+						continue;
+					}
 					if(relativeDPad && (vBtn.codes[0] == 1 || vBtn.codes[0] == 2))
 						log.info("NES touch push key:{}", vBtn.codes[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::PUSHED);
@@ -429,6 +475,15 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			app.viewController().placeEmuViews();
 		}
 	return elementsArePushed;
+}
+
+void VController::releaseHeldNesA()
+{
+	if(!heldNesA || nesAPointerCount)
+		return;
+	auto key = std::exchange(heldNesA, KeyInfo{});
+	log.info("NES touch release key:{}", key.codes[0]);
+	app().handleSystemKeyInput(key, Input::Action::RELEASED);
 }
 
 bool VController::keyInput(const Input::KeyEvent &e)
