@@ -358,7 +358,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 				elementsArePushed |= system.onPointerInputStart(e, dragState, gameRect);
 			}
 			pointer.directional = relativeDPad && e.isTouch() && !isInKeyboardMode() &&
-				gamepadIsActive() && dpadKeys[0] && !directionPointerActive && !elementsArePushed &&
+				gamepadIsActive() && dpadKeys[0] != KeyInfo{} && !directionPointerActive && !elementsArePushed &&
 				e.pos().x < win->bounds().center().x;
 			elementsArePushed |= pointer.directional;
 		},
