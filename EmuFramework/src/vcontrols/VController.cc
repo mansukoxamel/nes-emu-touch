@@ -320,6 +320,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 	auto &app = this->app();
 	auto &system = this->system();
 	const bool relativeDPad = usesRelativeDPad();
+	if(relativeDPad && !IG::Log::isEnabled())
+		IG::Log::setEnabled(true); // Release builds disable the shared logger by default.
 	if(relativeDPad && (e.pushed() || e.released()))
 		log.info("NES touch {} id:{} pos:{},{} hit:{},{} active:{}",
 			e.pushed() ? "down" : "up", e.pointerId(), e.pos().x, e.pos().y,

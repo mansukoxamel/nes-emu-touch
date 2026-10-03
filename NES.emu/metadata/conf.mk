@@ -1,6 +1,6 @@
 include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
-metadata_version = 1.5.85-touch4
-android_metadata_versionCode = 16010589
+metadata_version = 1.5.85-touch5
+android_metadata_versionCode = 16010590
 metadata_name = NES.emu Touch
 metadata_exec = nesemu
 metadata_pkgName = NesEmu
