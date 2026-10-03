@@ -82,10 +82,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 			{
 				app().setVideoAspectRatio(std::bit_cast<float>(item.id));
 			}, MenuItem::Config{.id = std::bit_cast<MenuId>(AppMeta::aspectRatioInfo.aspect.ratio<float>())});
-			aspectRatioItems.emplace_back("1:1", attach, [this]()
-			{
-				app().setVideoAspectRatio(1);
-			}, MenuItem::Config{.id = std::bit_cast<MenuId>(1.f)});
+			if(AppMeta::aspectRatioInfo.asFloat() != 1.f)
+				aspectRatioItems.emplace_back("1:1", attach, [this]()
+				{
+					app().setVideoAspectRatio(1);
+				}, MenuItem::Config{.id = std::bit_cast<MenuId>(1.f)});
 			if(AppMeta::hasRectangularPixels)
 			{
 				aspectRatioItems.emplace_back("Square Pixels", attach, [this]()

@@ -29,6 +29,7 @@ const bool AppMeta::hasCheats{true};
 const bool AppMeta::hasPALVideoSystem{true};
 const bool AppMeta::hasResetModes{true};
 const bool AppMeta::hasRectangularPixels{true};
+const AspectRatioInfo AppMeta::aspectRatioInfo{"1:1", {1, 1}};
 const int AppMeta::maxPlayers{4};
 const bool AppMeta::needsGlobalInstance{true};
 const NameFilterFunc AppMeta::defaultFsFilter{hasNESExtension};
@@ -195,9 +196,7 @@ SystemInputDeviceDesc AppMeta::inputDeviceDesc(int idx)
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO, {.relativeDPad = true}},
 		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
-		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
-		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
-		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, {.altConfig = true}},
+		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, RB2DO},
 		InputComponentDesc{"P2 Start (Famicom Microphone)", p2StartKeyInfo, InputComponent::button, RB2DO, {.altConfig = true}},
 	};
 	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
