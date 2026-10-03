@@ -193,7 +193,7 @@ SystemInputDeviceDesc AppMeta::inputDeviceDesc(int idx)
 {
 	static constexpr std::array gamepadComponents
 	{
-		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO, {.relativeDPad = true}},
 		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
 		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},

@@ -1,0 +1,55 @@
+name: NES.emu Touch APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/nes-touch-input]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends autoconf automake autopoint bash gcc-arm-linux-gnueabi file gawk gettext git libtool libtool-bin make nasm pkg-config unzip wget
+      - uses: lukka/get-cmake@latest
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android NDK
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r30-beta1-linux.zip
+          unzip -q android-ndk-r30-beta1-linux.zip
+          echo "ANDROID_NDK_PATH=$GITHUB_WORKSPACE/android-ndk-r30-beta1" >> "$GITHUB_ENV"
+          echo "EMUFRAMEWORK_PATH=$GITHUB_WORKSPACE/EmuFramework" >> "$GITHUB_ENV"
+          echo "IMAGINE_PATH=$GITHUB_WORKSPACE/imagine" >> "$GITHUB_ENV"
+          echo "IMAGINE_SDK_PATH=$GITHUB_WORKSPACE/imagine-sdk" >> "$GITHUB_ENV"
+      - name: Build Android dependencies
+        run: |
+          mkdir -p imagine-sdk
+          cd imagine/bundle/all
+          bash makeAll-android-arm64.sh install
+      - name: Build Imagine and EmuFramework
+        run: |
+          imagine/android.sh installLinks --presets arm64 --config Release
+          EmuFramework/android.sh installLinks --presets arm64 --config Release
+      - name: Build NES.emu APK
+        working-directory: NES.emu
+        run: make -f android.mk android-apk CONFIG=Release android_arch=arm64 -j"$(nproc)"
+      - name: Verify APK metadata
+        run: |
+          APK=NES.emu/build/android/build/outputs/apk/release/NesEmu-release.apk
+          test -s "$APK"
+          AAPT=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -1)
+          test -n "$AAPT"
+          "$AAPT" dump badging "$APK" | grep "name='local.jinn.nesemutouch' versionCode='16010586' versionName='1.5.85-jinn.1'"
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NesEmuTouch-1.5.85-jinn.1-arm64
+          path: NES.emu/build/android/build/outputs/apk/release/NesEmu-release.apk

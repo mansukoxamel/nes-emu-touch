@@ -1,8 +1,10 @@
 include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
-metadata_name = NES.emu
+metadata_version = 1.5.85-jinn.1
+android_metadata_versionCode = 16010586
+metadata_name = NES.emu Touch
 metadata_exec = nesemu
 metadata_pkgName = NesEmu
 metadata_supportedFileExtensions += nes fds unf unif nsf
-metadata_id = com.explusalpha.NesEmu
+metadata_id = local.jinn.nesemutouch
 metadata_vendor = Robert Broglia
 pnd_metadata_description = NES/Famicom emulator using components from FCEUX

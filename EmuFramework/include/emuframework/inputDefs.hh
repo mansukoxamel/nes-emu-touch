@@ -121,7 +121,8 @@ struct InputComponentFlags
 	uint8_t
 	altConfig:1{},
 	rowSize:2{},
-	staggeredLayout:1{};
+	staggeredLayout:1{},
+	relativeDPad:1{};
 };
 
 struct InputComponentDesc

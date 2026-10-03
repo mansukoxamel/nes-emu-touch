@@ -140,7 +140,7 @@ void VController::resetInput()
 {
 	for(auto &e : dragTracker.stateList())
 	{
-		for(auto &vBtn : e.data)
+		for(auto &vBtn : e.data.keys)
 		{
 			if(vBtn) // release old key, if any
 				app().handleSystemKeyInput(vBtn, Input::Action::RELEASED);
@@ -197,13 +197,15 @@ void VController::toggleKeyboard()
 
 std::array<KeyInfo, 2> VController::findGamepadElements(WPt pos)
 {
+	const auto components = AppMeta::inputDeviceDesc(0).components;
+	const bool relativeDPad = std::ranges::any_of(components, [](const auto &c){ return c.type == InputComponent::dPad && c.flags.relativeDPad; });
 	for(const auto &gpElem : gpElements)
 	{
 		auto indices = gpElem.visit(overloaded
 		{
 			[&](const VControllerDPad &dpad) -> std::array<KeyInfo, 2>
 			{
-				if(!gamepadDPadIsEnabled() || gpElem.state == VControllerState::OFF)
+				if(relativeDPad || !gamepadDPadIsEnabled() || gpElem.state == VControllerState::OFF)
 					return {};
 				return dpad.getInput(pos);
 			},
@@ -255,7 +257,9 @@ KeyInfo VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect gameRect)
 {
 	assume(e.isPointer());
-	if(e.pushed() || e.released())
+	const bool releasingDirection = e.released() && std::ranges::any_of(dragTracker.stateList(),
+		[&](const auto &state){ return state.dragState.id() == e.pointerId() && state.data.directional; });
+	if((e.pushed() || e.released()) && !releasingDirection)
 	{
 		for(const auto &grp: uiElements)
 		{
@@ -287,6 +291,36 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 	bool elementsArePushed = newElems != nullElems;
 	auto &app = this->app();
 	auto &system = this->system();
+	const auto components = AppMeta::inputDeviceDesc(0).components;
+	const bool relativeDPad = std::ranges::any_of(components, [](const auto &c){ return c.type == InputComponent::dPad && c.flags.relativeDPad; });
+	auto directionKeys = [&]() -> std::array<KeyInfo, 4>
+	{
+		if(!relativeDPad || !gamepadIsActive() || !gamepadDPadIsEnabled())
+			return {};
+		for(const auto &elem : gpElements)
+			if(const auto *dpad = elem.dPad(); dpad && elem.state != VControllerState::OFF)
+				return dpad->config.keys;
+		return {};
+	};
+	const auto dpadKeys = directionKeys();
+	const bool directionPointerActive = std::ranges::any_of(dragTracker.stateList(),
+		[](const auto &state){ return state.data.directional; });
+	const int directionThreshold = std::max(1, win->widthMMInPixels(6.f * 25.4f / 160.f)); // 6 Android dp
+	auto movedDirection = [&](TouchPointerState &state, WPt pos)
+	{
+		auto delta = pos - state.directionAnchor;
+		const float dx = delta.x, dy = delta.y;
+		if(dx * dx + dy * dy < float(directionThreshold * directionThreshold))
+			return state.keys;
+		const float absX = std::abs(dx), absY = std::abs(dy);
+		std::array<KeyInfo, 2> result{};
+		if(absX >= absY * .414214f)
+			result[0] = dx > 0 ? dpadKeys[1] : dpadKeys[3];
+		if(absY >= absX * .414214f)
+			result[1] = dy > 0 ? dpadKeys[2] : dpadKeys[0];
+		state.directionAnchor = pos;
+		return result;
+	};
 	auto applyInputActions =
 		[&](std::array<KeyInfo, 2> prevElements, std::array<KeyInfo, 2> currElements)
 		{
@@ -314,27 +348,35 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			}
 		};
 	dragTracker.inputEvent(e,
-		[&](Input::DragTrackerState dragState, auto &currElems)
+		[&](Input::DragTrackerState dragState, auto &pointer)
 		{
-			currElems = newElems;
-			applyInputActions(nullElems, newElems);
+			pointer.directionAnchor = e.pos();
+			pointer.keys = newElems;
+			applyInputActions(nullElems, pointer.keys);
 			if(!elementsArePushed)
 			{
 				elementsArePushed |= system.onPointerInputStart(e, dragState, gameRect);
 			}
+			pointer.directional = relativeDPad && e.isTouch() && !isInKeyboardMode() &&
+				gamepadIsActive() && dpadKeys[0] && !directionPointerActive && !elementsArePushed &&
+				e.pos().x < win->bounds().center().x;
+			elementsArePushed |= pointer.directional;
 		},
-		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &currElems)
+		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &pointer)
 		{
-			auto prevElems = std::exchange(currElems, newElems);
-			applyInputActions(prevElems, newElems);
+			auto nextElems = pointer.directional ? movedDirection(pointer, e.pos()) : newElems;
+			auto prevElems = std::exchange(pointer.keys, nextElems);
+			applyInputActions(prevElems, nextElems);
+			elementsArePushed |= pointer.directional;
 			if(!elementsArePushed)
 			{
 				elementsArePushed |= system.onPointerInputUpdate(e, dragState, prevDragState, gameRect);
 			}
 		},
-		[&](Input::DragTrackerState dragState, auto &currElems)
+		[&](Input::DragTrackerState dragState, auto &pointer)
 		{
-			applyInputActions(currElems, nullElems);
+			applyInputActions(pointer.keys, nullElems);
+			elementsArePushed |= pointer.directional;
 			elementsArePushed |= system.onPointerInputEnd(e, dragState, gameRect);
 		});
 	 if(!elementsArePushed && !gamepadControlsVisible() && shouldShowOnTouchInput()

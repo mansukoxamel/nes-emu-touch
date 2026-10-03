@@ -658,7 +658,13 @@ private:
 	std::vector<VControllerElement> uiElements{};
 	std::span<const KeyCode> disabledKeys{};
 	float alphaF{};
-	Input::DragTracker<std::array<KeyInfo, 2>> dragTracker{};
+	struct TouchPointerState
+	{
+		std::array<KeyInfo, 2> keys{};
+		WPt directionAnchor{};
+		bool directional{};
+	};
+	Input::DragTracker<TouchPointerState> dragTracker{};
 	int16_t defaultButtonSize{};
 	int16_t btnSize{};
 	bool showOnTouchInput_ = true;
