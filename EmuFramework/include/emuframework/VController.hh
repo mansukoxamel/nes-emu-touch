@@ -22,7 +22,6 @@
 #ifndef IG_USE_MODULE_IMAGINE
 #include <imagine/input/inputDefs.hh>
 #include <imagine/input/DragTracker.hh>
-#include <imagine/base/Timer.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/gfx/FanQuads.hh>
@@ -666,10 +665,6 @@ private:
 		bool directional{};
 	};
 	Input::DragTracker<TouchPointerState> dragTracker{};
-	KeyInfo heldNesA{};
-	SteadyClockTimePoint nesAPressedAt{};
-	unsigned nesAPointerCount{};
-	Timer nesAReleaseTimer;
 	int16_t defaultButtonSize{};
 	int16_t btnSize{};
 	bool showOnTouchInput_ = true;
@@ -700,7 +695,6 @@ private:
 	int uiButtonPixelSize() const;
 	void writeDeviceButtonsConfig(FileIO &) const;
 	void writeUIButtonsConfig(FileIO &) const;
-	void releaseHeldNesA();
 };
 
 }
